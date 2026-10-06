@@ -14,7 +14,18 @@ Create an **unofficial reconstruction of the supplied cut**, not a claim to have
 3. **Map the film.** Create `scene-ledger.md` with one row per scene: stable scene ID, source time span, location/time, visible action, speakers, dialogue evidence, and uncertainty. Build a character roster with `seen as`, `heard as`, and `name evidence`. Match a voice to a face only where the footage supports it. Confirm named characters from on-screen text, spoken address, credits, or reliable film metadata when available. Use `UNIDENTIFIED MAN/WOMAN`, a role cue, or `VOICE (O.S.)` until a name is supported.
 4. **Write.** Create a `.fountain` file in chronological order. Use `INT./EXT. LOCATION - DAY/NIGHT`, present-tense filmable action, ALL-CAPS character cues, dialogue, sparing parentheticals, and transitions only when meaningful. Describe what the video shows; mark unclear speech as `[inaudible]` and uncertain attribution in the ledger. Do not add plot events, unseen motivations, or camera directions as fact. See [format and evidence rules](references/screenplay-and-evidence.md).
 5. **Review.** Recheck every scene boundary and each dialogue exchange against the source. Compare the ledger's time spans with the video duration so no stretch is silently omitted. Record unresolved issues and the coverage status. Do not call a partial reconstruction complete. For a long video, work in ordered batches and keep the same ledger and roster across batches.
-6. **Deliver.** Provide the editable `.fountain`, `scene-ledger.md`, and a PDF when requested or useful. Render the PDF with `scripts/render_fountain.py SCRIPT.fountain OUTPUT.pdf`; the script also saves print-ready HTML and uses local Chrome for PDF, which preserves Telugu glyph shaping. Inspect at least the title/first scene, a dialogue-heavy page, and the last page. State which lines/names remain uncertain and whether the whole cut was reviewed.
+6. **Deliver.** Provide the editable `.fountain`, `scene-ledger.md`, and a PDF when requested or useful. Render the standard PDF with `scripts/render_fountain.py SCRIPT.fountain OUTPUT.pdf`; the script also saves print-ready HTML and uses local Chrome for PDF, which preserves Telugu glyph shaping. When the user wants visual context beside the dialogue, render an additional illustrated PDF with `scripts/render_illustrated.py` as described below. Inspect at least the title/first scene, a dialogue-heavy page, and the last page. State which lines/names remain uncertain and whether the whole cut was reviewed.
+
+## Illustrated screenplay
+
+For a reference layout with screenshots to the left of the text, keep the `.fountain` source as the editable screenplay and create a separate illustrated PDF. Make a JSON array with one `{"start": seconds, "end": seconds}` entry for every Fountain scene heading, in order, using the scene ledger. Then run:
+
+```bash
+python3 scripts/render_illustrated.py SCRIPT.fountain VIDEO.mp4 ILLUSTRATED.pdf \
+  --scene-times scene-times.json --captions source-language.srt
+```
+
+The renderer pairs each screenplay beat with an actual frame from its scene, aligns dialogue to source-language captions when supplied, and saves an alignment JSON for review. Use `--work-dir` to retain sampled frames in the project work folder. Check dialogue match scores and visually inspect a range of pages; correct scene times or screenshot choices if an image shows the wrong person or moment. Do not imply the screenshots verify an uncertain dialogue line.
 
 ## Local tools
 
