@@ -4,11 +4,12 @@
 import argparse
 import html
 import re
-import shutil
 import subprocess
 import tempfile
 import time
 from pathlib import Path
+
+from runtime import find_chrome
 
 
 CSS = """
@@ -16,7 +17,7 @@ CSS = """
   @top-right { content: counter(page) "."; font: 12pt 'Courier New', monospace; }
 }
 @page :first { @top-right { content: none; } }
-body { font: 12pt/1.15 'Courier New', 'Kohinoor Telugu', 'Telugu MN', monospace; color:#111; }
+body { font: 12pt/1.15 'Courier New', 'Kohinoor Telugu', 'Telugu MN', 'Nirmala UI', 'Gautami', monospace; color:#111; }
 .title-page { text-align:center; break-after:page; padding-top:2.7in; }
 .title { font-weight:bold; margin-bottom:1.5in; }
 .credit { margin-bottom:.15in; }
@@ -95,8 +96,8 @@ def main() -> None:
     if args.output.suffix.lower() == ".html":
         return
 
-    chrome = shutil.which("google-chrome") or Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
-    if not Path(chrome).exists():
+    chrome = find_chrome()
+    if chrome is None:
         parser.error("Google Chrome is needed for PDF output; print the generated HTML in a browser")
     with tempfile.TemporaryDirectory(prefix="screenplay-chrome-") as profile:
         process = subprocess.Popen(

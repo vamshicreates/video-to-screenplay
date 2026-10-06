@@ -5,9 +5,7 @@ import argparse
 import base64
 import html
 import json
-import math
 import re
-import shutil
 import subprocess
 import tempfile
 import time
@@ -15,6 +13,7 @@ from difflib import SequenceMatcher
 from pathlib import Path
 
 from render_fountain import is_cue, is_scene
+from runtime import find_chrome
 
 
 CSS = """
@@ -24,7 +23,7 @@ CSS = """
 @page :first { @top-right { content: none; } }
 * { box-sizing: border-box; }
 body { margin: 0; color: #171717;
-  font: 11.5pt/1.2 'Courier New', 'Kohinoor Telugu', 'Telugu MN', monospace; }
+  font: 11.5pt/1.2 'Courier New', 'Kohinoor Telugu', 'Telugu MN', 'Nirmala UI', 'Gautami', monospace; }
 .title-page { text-align: center; break-after: page; padding-top: 2.7in; }
 .title { font-weight: bold; margin-bottom: 1.4in; }
 .credit { margin-bottom: .15in; }
@@ -206,8 +205,8 @@ def render(metadata: dict, blocks: list[dict], frames: list[Path], interval: flo
 
 
 def print_pdf(html_path: Path, pdf_path: Path) -> None:
-    chrome = shutil.which("google-chrome") or Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
-    if not Path(chrome).exists():
+    chrome = find_chrome()
+    if chrome is None:
         raise RuntimeError("Google Chrome is needed to print the illustrated PDF")
     pdf_path.unlink(missing_ok=True)
     with tempfile.TemporaryDirectory(prefix="illustrated-chrome-") as profile:
