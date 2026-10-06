@@ -14,7 +14,7 @@ from pathlib import Path
 
 from render_fountain import is_cue, is_scene
 from runtime import find_chrome
-from selection import dialogue_segments, load_selection, selected_at
+from selection import load_selection, selected_at
 
 
 CSS = """
@@ -95,6 +95,29 @@ def compact(s: str) -> str:
     return "".join(c.casefold() for c in s if c.isalnum())
 
 
+def source_dialogue(lines: list[str]) -> str:
+    """Match captions against original dialogue, not its Tinglish duplicate."""
+    spoken = [line for line in lines[1:] if not (line.startswith("(") and line.endswith(")"))]
+    telugu = [line for line in spoken if re.search(r"[\u0c00-\u0c7f]", line)]
+    if telugu:
+        return " ".join(telugu)
+    return " ".join(line for line in spoken if not line.casefold().startswith("tinglish:"))
+
+
+def scene_frame_time(time_seconds: float, span: dict, selection: dict) -> float:
+    """Keep a frame inside the scene's dialogue or song selection interval."""
+    scene_kind = span.get("kind", "dialogue")
+    eligible = [part for part in selection["segments"] if part["kind"] == scene_kind
+                and part["start"] < span["end"] and part["end"] > span["start"]]
+    if not eligible:
+        raise ValueError(f"Scene has no {scene_kind} interval")
+    if any(part["start"] <= time_seconds < part["end"] for part in eligible):
+        return time_seconds
+    choices = [max(span["start"], part["start"]) for part in eligible]
+    choices += [min(span["end"], part["end"]) - .01 for part in eligible]
+    return min(choices, key=lambda value: abs(value - time_seconds))
+
+
 def match_dialogues(blocks: list[dict], cues: list[dict], spans: list[dict]) -> None:
     """Find monotone caption matches within each scene; interpolate other beats."""
     for scene_id, span in enumerate(spans):
@@ -102,7 +125,7 @@ def match_dialogues(blocks: list[dict], cues: list[dict], spans: list[dict]) -> 
         dialogue = [b for b in scene_blocks if b["kind"] == "dialogue"]
         choices = [c for c in cues if span["start"] <= c["start"] < span["end"]]
         if dialogue and choices:
-            texts = [compact(" ".join(b["lines"][1:])) for b in dialogue]
+            texts = [compact(source_dialogue(b["lines"])) for b in dialogue]
             options = [compact(c["text"]) for c in choices]
             score = []
             for i, script_text in enumerate(texts):
@@ -252,10 +275,10 @@ def main() -> None:
     p.add_argument("video", type=Path)
     p.add_argument("output", type=Path, help="PDF output; matching HTML and alignment JSON are saved beside it")
     p.add_argument("--scene-times", type=Path, required=True,
-                   help="JSON array of {start,end} seconds in Fountain scene order")
+                   help="JSON array of {start,end,kind} in Fountain scene order; kind is dialogue or song")
     p.add_argument("--captions", type=Path, help="Source-language SRT for dialogue alignment")
     p.add_argument("--selection", type=Path,
-                   help="Reviewed dialogue selection; keep screenshots inside retained intervals")
+                   help="Reviewed selection; keep screenshots in each scene's dialogue or song interval")
     p.add_argument("--frame-interval", type=float, default=2)
     p.add_argument("--work-dir", type=Path, help="Cache sampled frames here")
     args = p.parse_args()
@@ -268,6 +291,8 @@ def main() -> None:
         p.error(f"{len(spans)} scene spans supplied for {scene_count} Fountain scenes")
     if any(x["end"] <= x["start"] for x in spans):
         p.error("Every scene span needs end > start")
+    if any(x.get("kind", "dialogue") not in {"dialogue", "song"} for x in spans):
+        p.error("Scene kind must be dialogue or song")
     selection = load_selection(args.selection) if args.selection else None
     cues = parse_srt(args.captions) if args.captions else []
     if selection:
@@ -275,16 +300,11 @@ def main() -> None:
     match_dialogues(blocks, cues, spans)
     if selection:
         for block in blocks:
-            if selected_at(selection, block["time"]):
-                continue
             span = spans[block["scene"]]
-            eligible = [part for part in dialogue_segments(selection)
-                        if part["start"] < span["end"] and part["end"] > span["start"]]
-            if not eligible:
-                p.error(f"Fountain scene {block['scene'] + 1} has no retained dialogue interval")
-            choices = [max(span["start"], part["start"]) for part in eligible]
-            choices += [min(span["end"], part["end"]) - .01 for part in eligible]
-            block["time"] = min(choices, key=lambda value: abs(value - block["time"]))
+            try:
+                block["time"] = scene_frame_time(block["time"], span, selection)
+            except ValueError as error:
+                p.error(f"Fountain scene {block['scene'] + 1}: {error}")
     output = args.output.resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
     work = args.work_dir or output.parent / (output.stem + "-frames")

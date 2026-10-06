@@ -1,6 +1,6 @@
 # Video to Screenplay
 
-A Codex skill that turns the dialogue portions of a film, short clip, or audio recording into a screenplay. It logs and omits action-only passages, songs, titles, credits, and other non-dialogue material. It prepares contact sheets when video is available, transcribes selected speech locally, and renders editable Fountain to a standard or screenshot-illustrated PDF. The output is an unofficial reconstruction of the supplied cut.
+A Codex skill that turns a film, short clip, or audio recording into a dialogue-focused screenplay. Video songs appear as concise visual montages without lyrics. Scene headings show supported locations, and Telugu dialogue includes a matching Tinglish line. The skill omits action-only passages, titles, credits, and other unrelated non-dialogue material. It prepares contact sheets when video is available, transcribes selected speech locally, and renders editable Fountain to a standard or screenshot-illustrated PDF. The output is an unofficial reconstruction of the supplied cut.
 
 ## Supported systems
 
@@ -45,7 +45,7 @@ If Chrome is installed in a custom location, set `CHROME_PATH` to its executable
 
 ## Use
 
-Give Codex a local video, audio file, or accessible link and ask for a dialogue-only screenplay. Codex follows [SKILL.md](SKILL.md): it reviews the entire source, records retained and excluded time ranges in `selection.json`, and keeps a timestamped scene ledger. Song lyrics, title animation, credits, and action without meaningful dialogue are omitted from the screenplay. Dialogue briefly embedded in action or music can be retained as its own interval. For audio-only input, the standard text PDF is produced without screenshots.
+Give Codex a local video, audio file, or accessible link and ask for a screenplay. Codex follows [SKILL.md](SKILL.md): it reviews the entire source, records dialogue, song, and excluded time ranges in `selection.json`, and keeps a timestamped scene ledger. Songs receive brief visual montage descriptions with locations and visible actions, but no lyrics. Telugu dialogue is followed by Tinglish transliteration. Dialogue briefly embedded in action or music can be retained as its own interval. For audio-only input, the standard text PDF is produced without invented visuals or screenshots.
 
 On macOS, the helpers can also be run directly:
 
