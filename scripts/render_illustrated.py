@@ -14,6 +14,7 @@ from pathlib import Path
 
 from render_fountain import is_cue, is_scene
 from runtime import find_chrome
+from selection import dialogue_segments, load_selection, selected_at
 
 
 CSS = """
@@ -253,6 +254,8 @@ def main() -> None:
     p.add_argument("--scene-times", type=Path, required=True,
                    help="JSON array of {start,end} seconds in Fountain scene order")
     p.add_argument("--captions", type=Path, help="Source-language SRT for dialogue alignment")
+    p.add_argument("--selection", type=Path,
+                   help="Reviewed dialogue selection; keep screenshots inside retained intervals")
     p.add_argument("--frame-interval", type=float, default=2)
     p.add_argument("--work-dir", type=Path, help="Cache sampled frames here")
     args = p.parse_args()
@@ -265,8 +268,23 @@ def main() -> None:
         p.error(f"{len(spans)} scene spans supplied for {scene_count} Fountain scenes")
     if any(x["end"] <= x["start"] for x in spans):
         p.error("Every scene span needs end > start")
+    selection = load_selection(args.selection) if args.selection else None
     cues = parse_srt(args.captions) if args.captions else []
+    if selection:
+        cues = [cue for cue in cues if selected_at(selection, (cue["start"] + cue["end"]) / 2)]
     match_dialogues(blocks, cues, spans)
+    if selection:
+        for block in blocks:
+            if selected_at(selection, block["time"]):
+                continue
+            span = spans[block["scene"]]
+            eligible = [part for part in dialogue_segments(selection)
+                        if part["start"] < span["end"] and part["end"] > span["start"]]
+            if not eligible:
+                p.error(f"Fountain scene {block['scene'] + 1} has no retained dialogue interval")
+            choices = [max(span["start"], part["start"]) for part in eligible]
+            choices += [min(span["end"], part["end"]) - .01 for part in eligible]
+            block["time"] = min(choices, key=lambda value: abs(value - block["time"]))
     output = args.output.resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
     work = args.work_dir or output.parent / (output.stem + "-frames")

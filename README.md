@@ -1,6 +1,6 @@
 # Video to Screenplay
 
-A Codex skill that reconstructs a supplied video as a scene-by-scene screenplay. It prepares contact sheets and audio, transcribes speech locally, guides scene and character verification, and renders editable Fountain to a standard or screenshot-illustrated PDF. The output is an unofficial reconstruction of the supplied cut.
+A Codex skill that turns the dialogue portions of a film, short clip, or audio recording into a screenplay. It logs and omits action-only passages, songs, titles, credits, and other non-dialogue material. It prepares contact sheets when video is available, transcribes selected speech locally, and renders editable Fountain to a standard or screenshot-illustrated PDF. The output is an unofficial reconstruction of the supplied cut.
 
 ## Supported systems
 
@@ -45,14 +45,15 @@ If Chrome is installed in a custom location, set `CHROME_PATH` to its executable
 
 ## Use
 
-Give Codex a local video or accessible link and ask for a screenplay. Codex follows [SKILL.md](SKILL.md), keeping a timestamped scene ledger and marking dialogue or identities it cannot verify.
+Give Codex a local video, audio file, or accessible link and ask for a dialogue-only screenplay. Codex follows [SKILL.md](SKILL.md): it reviews the entire source, records retained and excluded time ranges in `selection.json`, and keeps a timestamped scene ledger. Song lyrics, title animation, credits, and action without meaningful dialogue are omitted from the screenplay. Dialogue briefly embedded in action or music can be retained as its own interval. For audio-only input, the standard text PDF is produced without screenshots.
 
 On macOS, the helpers can also be run directly:
 
 ```bash
 .venv/bin/python scripts/prepare_video.py /path/to/video.mp4 --output-dir /path/to/work
-.venv/bin/python scripts/transcribe.py /path/to/work/audio-16k.wav --language te --output-dir /path/to/work
+.venv/bin/python scripts/filter_dialogue.py /path/to/selection.json --captions /path/to/source.srt --output-dir /path/to/work
+.venv/bin/python scripts/transcribe.py /path/to/video.mp4 --selection /path/to/selection.json --language te --output-dir /path/to/work
 .venv/bin/python scripts/render_fountain.py /path/to/script.fountain /path/to/script.pdf
 ```
 
-On Windows, replace `.venv/bin/python` with `.venv\Scripts\python.exe` and use Windows file paths. For a screenshot-illustrated PDF, provide scene time spans as described in [SKILL.md](SKILL.md). PDF rendering uses local Chrome; HTML is generated alongside the PDF. Transcription is a draft and requires review against the video, especially when voices overlap or music is present.
+On Windows, replace `.venv/bin/python` with `.venv\Scripts\python.exe` and use Windows file paths. For a screenshot-illustrated PDF, provide retained scene time spans as described in [SKILL.md](SKILL.md). PDF rendering uses local Chrome; HTML is generated alongside the PDF. Transcription and segment classification require review, especially where speech overlaps music or action.

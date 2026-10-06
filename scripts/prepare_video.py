@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare audio and time-indexed contact sheets for video analysis."""
+"""Prepare audio and, when video exists, time-indexed contact sheets."""
 
 import argparse
 import json
@@ -31,28 +31,33 @@ def main() -> None:
     )
     data = json.loads(probe.stdout)
     duration = float(data["format"]["duration"])
-    video = next((s for s in data["streams"] if s["codec_type"] == "video"), None)
+    video = next((s for s in data["streams"] if s["codec_type"] == "video"
+                  and not s.get("disposition", {}).get("attached_pic")), None)
     audio = next((s for s in data["streams"] if s["codec_type"] == "audio"), None)
-    if video is None:
-        parser.error("Input has no video stream")
+    if video is None and audio is None:
+        parser.error("Input has no audio or video stream")
 
     audio_path = output / "audio-16k.wav"
     if audio and not audio_path.exists():
         run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-n", "-i", str(args.input),
              "-vn", "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", str(audio_path)])
 
-    sheets = sorted(output.glob("contact-*.jpg"))
-    if not sheets:
+    sheets = sorted(output.glob("contact-*.jpg")) if video else []
+    if video and not sheets:
         run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-n", "-i", str(args.input),
+             "-map", f"0:{video['index']}",
              "-vf", f"fps=1/{args.interval},scale=320:-2,tile=4x4",
              "-fps_mode", "vfr", str(output / "contact-%03d.jpg")])
         sheets = sorted(output.glob("contact-*.jpg"))
 
-    frame_count = math.ceil(duration / args.interval)
+    frame_count = math.ceil(duration / args.interval) if video else 0
     manifest = {
         "source": str(args.input.resolve()),
         "duration_seconds": duration,
-        "video": {"width": video.get("width"), "height": video.get("height"), "codec": video.get("codec_name")},
+        "visuals_available": bool(video),
+        "video": {"present": bool(video), "width": video.get("width") if video else None,
+                  "height": video.get("height") if video else None,
+                  "codec": video.get("codec_name") if video else None},
         "audio": {"present": bool(audio), "codec": audio.get("codec_name") if audio else None,
                   "extracted": str(audio_path) if audio else None},
         "interval_seconds": args.interval,
