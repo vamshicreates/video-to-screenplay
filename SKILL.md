@@ -1,0 +1,26 @@
+---
+name: video-to-screenplay
+description: Reconstruct a supplied video or accessible video link as a scene-by-scene screenplay with source-grounded action, attributed dialogue, and standard Fountain/PDF formatting. Use when asked to turn footage into a screenplay or script; not for writing a new story from a premise.
+---
+
+# Video to screenplay
+
+Create an **unofficial reconstruction of the supplied cut**, not a claim to have the original shooting script. Cover the entire requested video in order. Preserve the spoken language unless the user requests translation or Romanization. Put scene headings and action in the user's requested language, or English if unspecified. Keep subtitles, visual observations, and inferred context distinct.
+
+## Workflow
+
+1. **Ingest.** For a local file, verify it and run `scripts/prepare_video.py INPUT --output-dir WORKDIR`. For a link, first use an accessible caption/transcript source if available; download footage only when authorized and needed for visual analysis. Inspect the generated metadata and contact sheets. For short cuts or unclear moments, seek to additional frames or replay the relevant span. Contact sheets are an index, not a substitute for checking action in motion.
+2. **Transcribe.** Use source subtitles when available, but compare them with the audio. Otherwise run `scripts/transcribe.py INPUT --language CODE --output-dir WORKDIR` with the skill's `.venv/bin/python` when installed. Its default `small` model is multilingual. For difficult dialogue, try `medium` only if the added time and model download are appropriate. Treat ASR output as a draft, especially for music, overlap, accents, and names. Never invent missing lines to make the exchange read smoothly.
+3. **Map the film.** Create `scene-ledger.md` with one row per scene: stable scene ID, source time span, location/time, visible action, speakers, dialogue evidence, and uncertainty. Build a character roster with `seen as`, `heard as`, and `name evidence`. Match a voice to a face only where the footage supports it. Confirm named characters from on-screen text, spoken address, credits, or reliable film metadata when available. Use `UNIDENTIFIED MAN/WOMAN`, a role cue, or `VOICE (O.S.)` until a name is supported.
+4. **Write.** Create a `.fountain` file in chronological order. Use `INT./EXT. LOCATION - DAY/NIGHT`, present-tense filmable action, ALL-CAPS character cues, dialogue, sparing parentheticals, and transitions only when meaningful. Describe what the video shows; mark unclear speech as `[inaudible]` and uncertain attribution in the ledger. Do not add plot events, unseen motivations, or camera directions as fact. See [format and evidence rules](references/screenplay-and-evidence.md).
+5. **Review.** Recheck every scene boundary and each dialogue exchange against the source. Compare the ledger's time spans with the video duration so no stretch is silently omitted. Record unresolved issues and the coverage status. Do not call a partial reconstruction complete. For a long video, work in ordered batches and keep the same ledger and roster across batches.
+6. **Deliver.** Provide the editable `.fountain`, `scene-ledger.md`, and a PDF when requested or useful. Render the PDF with `scripts/render_fountain.py SCRIPT.fountain OUTPUT.pdf`; the script also saves print-ready HTML and uses local Chrome for PDF, which preserves Telugu glyph shaping. Inspect at least the title/first scene, a dialogue-heavy page, and the last page. State which lines/names remain uncertain and whether the whole cut was reviewed.
+
+## Local tools
+
+- `ffmpeg` and `ffprobe` are needed for media preparation.
+- `scripts/prepare_video.py` uses only the Python standard library plus FFmpeg.
+- `scripts/transcribe.py` needs `faster-whisper` and a multilingual model. If `.venv` is missing, create it with `uv venv --python 3.12 .venv` from the skill directory and install `requirements.txt` with `uv pip install --python .venv/bin/python -r requirements.txt`. The model downloads into `models/` on first use. It writes timestamped `.txt` and `.srt` files. It does not identify speakers.
+- `scripts/render_fountain.py` needs local Google Chrome only for PDF output. It renders the Fountain subset described in the reference; preserve the Fountain source for edits.
+
+If a tool or model is missing, use an available equivalent or install in an isolated environment when authorized. Keep original media and generated files separate. Do not publish or send the reconstruction elsewhere without the user's instruction.

@@ -1,0 +1,3 @@
+interface:
+  display_name: "Video to Screenplay"
+  short_description: "Reconstruct supplied video as a sourced screenplay"
